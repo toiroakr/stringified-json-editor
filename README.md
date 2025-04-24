@@ -1,71 +1,75 @@
-# stringified-json-editor README
+# Stringified JSON Editor
 
-This is the README for your extension "stringified-json-editor". After writing up a brief description, we recommend including the following sections.
+VS Code拡張機能「Stringified JSON Editor」は、JSONファイル内に文字列として格納されているJSONを、通常のJSONとして編集できるようにするツールです。
 
-## Features
+## 機能
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+この拡張機能は、JSONファイル内の文字列化されたJSON（例：`{"config": "{\"name\":\"test\",\"value\":123}"}`）を検出し、それを通常のJSONとして編集できるようにします。
 
-For example if there is an image subfolder under your extension project workspace:
+![機能のデモ](images/demo.gif)
 
-\!\[feature X\]\(images/feature-x.png\)
+## 使い方
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+1. JSONファイルを開きます
+2. 以下のいずれかの方法でJSON文字列を編集します：
+   - **選択方式**: JSON文字列部分を選択します（クォーテーションを含めても含めなくても動作します）
+   - **カーソル方式**: JSON文字列内にカーソルを置きます（選択不要）
+3. 右クリックして「Edit as JSON」を選択します
+4. 新しいエディタでJSONが整形されて表示されます
+5. JSONを編集します
+6. 編集が完了したら、右クリックして「Save JSON to parent document」を選択します
+7. 編集内容が元のJSONファイルに文字列として保存されます
 
-## Requirements
+## 例
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+### 元のJSONファイル
+```json
+{
+  "name": "Example",
+  "config": "{\"server\":\"localhost\",\"port\":8080,\"settings\":{\"debug\":true}}"
+}
+```
 
-## Extension Settings
+### 編集可能なJSON
+```json
+{
+  "server": "localhost",
+  "port": 8080,
+  "settings": {
+    "debug": true
+  }
+}
+```
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+### 編集後の元JSONファイル
+```json
+{
+  "name": "Example",
+  "config": "{\"server\":\"localhost\",\"port\":9000,\"settings\":{\"debug\":false}}"
+}
+```
 
-For example:
+## 要件
 
-This extension contributes the following settings:
+- VS Code 1.99.0以上
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+## 拡張機能の設定
 
-## Known Issues
+この拡張機能には特別な設定はありません。
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+## 既知の問題
 
-## Release Notes
+- 非常に大きなJSON文字列の場合、パフォーマンスが低下する可能性があります
+- ネストされたJSON文字列（JSON文字列内にさらにJSON文字列がある場合）は現在サポートされていません
 
-Users appreciate release notes as you update your extension.
+## リリースノート
 
-### 1.0.0
+### 0.0.1
 
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+- 初期リリース
+- JSONファイル内のJSON文字列を検出して編集する機能
+- 編集したJSONを元のファイルに保存する機能
 
 ---
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
 
 **Enjoy!**

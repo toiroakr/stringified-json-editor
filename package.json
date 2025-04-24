@@ -1,23 +1,35 @@
 {
   "name": "stringified-json-editor",
-  "displayName": "stringified-json-editor",
-  "description": "",
-  "version": "0.0.1",
+  "displayName": "Stringified JSON Editor",
+  "description": "Edit JSON strings within JSON files as regular JSON",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.99.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:json",
+    "onLanguage:jsonc"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "stringified-json-editor.helloWorld",
-        "title": "Hello World"
+        "command": "stringified-json-editor.editJsonString",
+        "title": "Edit as stringified JSON"
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "stringified-json-editor.editJsonString",
+          "when": "editorLangId == json || editorLangId == jsonc",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",
