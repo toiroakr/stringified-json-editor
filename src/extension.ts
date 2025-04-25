@@ -215,7 +215,7 @@ export function activate(context: vscode.ExtensionContext) {
     try {
       let selectedText = target.body;
       // Check if the selected text is a JSON string
-      let jsonContent: string = selectedText;
+      let jsonContent: string = selectedText.replace(/\\n/g, "\n");
 
       try {
         // Process escaped characters
