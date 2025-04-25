@@ -2,13 +2,17 @@
   "name": "stringified-json-editor",
   "displayName": "Stringified JSON Editor",
   "description": "Edit JSON strings within JSON files as regular JSON",
-  "version": "0.0.2",
-  "engines": {
-    "vscode": "^1.99.0"
-  },
+  "publisher": "toiroakr",
+  "version": "0.1.0",
+  "icon": "assets/icon.png",
   "categories": [
     "Other"
   ],
+  "keywords": ["JSON"],
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "license": "MIT",
   "activationEvents": [
     "onLanguage:json",
     "onLanguage:jsonc"
@@ -57,5 +61,9 @@
     "typescript": "^5.8.2",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/toiroakr/stringified-json-editor"
   }
 }
