@@ -1,49 +1,69 @@
 {
-    "name": "stringified-json-editor",
-    "displayName": "Stringified JSON Editor",
-    "description": "Visual Studio Code extension for editing stringified JSON in JSON.",
-    "version": "0.0.2",
-    "publisher": "toiroakr",
-    "author": {
-        "name": "toiroakr"
-    },
-    "license": "MIT",
-    "icon": "assets/icon.png",
-    "engines": {
-        "vscode": "^1.34.0"
-    },
-    "categories": ["Other"],
-    "keywords": ["JSON"],
-    "markdown": "github",
-    "activationEvents": [
-        "onCommand:extension.editStringified"
+  "name": "stringified-json-editor",
+  "displayName": "Stringified JSON Editor",
+  "description": "Edit JSON strings within JSON files as regular JSON",
+  "publisher": "toiroakr",
+  "version": "0.1.1",
+  "icon": "assets/icon.png",
+  "categories": [
+    "Other"
+  ],
+  "keywords": ["JSON"],
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "license": "MIT",
+  "activationEvents": [
+    "onLanguage:json",
+    "onLanguage:jsonc"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "stringified-json-editor.editJsonString",
+        "title": "Edit as stringified JSON"
+      }
     ],
-    "main": "./out/extension.js",
-    "contributes": {
-        "commands": [
-            {
-                "command": "extension.editStringified",
-                "title": "Edit as stringified JSON"
-            }
-        ]
-    },
-    "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install",
-        "test": "npm run compile && node ./node_modules/vscode/bin/test"
-    },
-    "devDependencies": {
-        "typescript": "^3.3.1",
-        "vscode": "^1.1.28",
-        "tslint": "^5.12.1",
-        "@types/node": "^10.12.21",
-        "@types/mocha": "^2.2.42"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/toiroakr/stringified-json-editor.git"
-    },
-    "homepage": "https://github.com/toiroakr/stringified-json-editor/blob/master/README.md"
+    "menus": {
+      "editor/context": [
+        {
+          "command": "stringified-json-editor.editJsonString",
+          "when": "editorLangId == json || editorLangId == jsonc",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run package",
+    "compile": "pnpm run check-types && pnpm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.99.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "eslint": "^9.23.0",
+    "esbuild": "^0.25.1",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.8.2",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/toiroakr/stringified-json-editor"
+  }
 }

@@ -1,115 +1,268 @@
-'use strict';
-
 import * as vscode from 'vscode';
-import { MemFS } from './fileSystemProvider';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
 
-const MEM_FS_SCHEMA = 'memfs_sje';
-const MEM_FS_FILE = `${MEM_FS_SCHEMA}:/stringified.json`;
-
+// Interface representing the target string and its range for editing
 interface EditTarget {
-	range: vscode.Range;
-	body: string;
+  body: string;
+  selection: vscode.Selection;
 }
 
-interface EditContext {
-	editor?: vscode.TextEditor;
-	range?: vscode.Range;
+// Interface holding information about temporary files
+interface TempFileInfo {
+  filePath: string;
+  originalUri: vscode.Uri;
+  originalSelection: vscode.Selection;
 }
 
-function positionEquals(a: vscode.Position, b: vscode.Position) {
-	return a.line === b.line && a.character === b.character;
+// Temporary file management class
+class TempFileManager {
+  private _tempFiles = new Map<string, TempFileInfo>();
+  private _disposables: vscode.Disposable[] = [];
+
+  constructor() {
+    // Register event listener when editor is closed
+    this._disposables.push(
+      vscode.workspace.onDidCloseTextDocument(document => {
+        const filePath = document.uri.fsPath;
+        if (this._tempFiles.has(filePath)) {
+          this.deleteTempFile(filePath).catch(err => {
+            console.error(`Failed to delete temporary file: ${err}`);
+          });
+        }
+      })
+    );
+
+    // Register event listener when file is saved
+    this._disposables.push(
+      vscode.workspace.onDidSaveTextDocument(async document => {
+        const filePath = document.uri.fsPath;
+        if (this._tempFiles.has(filePath)) {
+          await this.saveToOriginalDocument(document).catch(err => {
+            vscode.window.showErrorMessage(`Failed to save to original document: ${err}`);
+          });
+        }
+      })
+    );
+  }
+
+  // Save the temporary file content to the original document
+  public async saveToOriginalDocument(document: vscode.TextDocument): Promise<void> {
+    const filePath = document.uri.fsPath;
+    const tempFileInfo = this._tempFiles.get(filePath);
+
+    if (!tempFileInfo) {
+      return;
+    }
+
+    // Get JSON content
+    let jsonContent = document.getText().trim();
+
+    // Open the original document
+    const originalDocument = await vscode.workspace.openTextDocument(tempFileInfo.originalUri);
+    const originalEditor = await vscode.window.showTextDocument(originalDocument);
+
+    try {
+      // Convert JSON to escaped string
+      try {
+        jsonContent = JSON.stringify(JSON.parse(jsonContent)).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      } catch (e) {
+        vscode.window.showErrorMessage('Not a valid JSON string: ' + jsonContent);
+        jsonContent = JSON.parse(JSON.stringify({ content: jsonContent })).content;
+      }
+
+      // Edit the original document
+      await originalEditor.edit((editBuilder: vscode.TextEditorEdit) => {
+        editBuilder.replace(tempFileInfo.originalSelection, jsonContent);
+      });
+
+      // Close temporary file editor
+      const tabs = vscode.window.tabGroups.all
+        .flatMap(group => group.tabs)
+        .filter(tab => tab.input instanceof vscode.TabInputText &&
+          tab.input.uri.fsPath === document.uri.fsPath);
+      await vscode.window.tabGroups.close(tabs);
+
+      // Delete temporary file
+      await this.deleteTempFile(filePath);
+
+      vscode.window.showInformationMessage('JSON string has been updated in the original document');
+    } catch (error) {
+      if (error instanceof Error) {
+        vscode.window.showErrorMessage(`Error: ${error.message}`);
+      } else {
+        vscode.window.showErrorMessage('An unknown error occurred');
+      }
+      throw error;
+    }
+  }
+
+  // Create a temporary file
+  public async createTempFile(content: string, originalUri: vscode.Uri, originalSelection: vscode.Selection): Promise<string> {
+    const tempDir = os.tmpdir();
+    const timestamp = Date.now();
+    const fileName = `stringified_json_${timestamp}.json`;
+    const filePath = path.join(tempDir, fileName);
+
+    // Write content to file
+    await fs.promises.writeFile(filePath, content, 'utf8');
+
+    // Save information
+    this._tempFiles.set(filePath, {
+      filePath,
+      originalUri,
+      originalSelection,
+    });
+
+    return filePath;
+  }
+
+  // Get temporary file information
+  public getTempFileInfo(filePath: string): TempFileInfo | undefined {
+    return this._tempFiles.get(filePath);
+  }
+
+  // Delete a temporary file
+  public async deleteTempFile(filePath: string): Promise<void> {
+    try {
+      await fs.promises.unlink(filePath);
+      this._tempFiles.delete(filePath);
+    } catch (error) {
+      console.error(`Failed to delete temporary file: ${error}`);
+    }
+  }
+
+  // Delete all temporary files
+  public async deleteAllTempFiles(): Promise<void> {
+    for (const [filePath] of this._tempFiles) {
+      await this.deleteTempFile(filePath);
+    }
+  }
+
+  // Release resources
+  public dispose(): void {
+    this._disposables.forEach(d => d.dispose());
+    this.deleteAllTempFiles().catch(err => {
+      console.error(`Failed to delete all temporary files: ${err}`);
+    });
+  }
 }
 
+// Function to check if two positions are equal
+function positionEquals(a: vscode.Position, b: vscode.Position): boolean {
+  return a.line === b.line && a.character === b.character;
+}
+
+// Function to detect a string at cursor position
 function getTarget(editor: vscode.TextEditor): EditTarget | null {
-	const document = editor.document;
-	const selection = editor.selection;
+  const document = editor.document;
+  const selection = editor.selection;
 
-	const line = document.lineAt(selection.start.line);
-	const reversedLine = line.text.split('').reverse().join('');
+  // Use selected range if exists
+  if (!positionEquals(selection.start, selection.end)) {
+    const selectedText = document.getText(selection);
+    return { body: selectedText, selection };
+  }
 
-	if (positionEquals(selection.start, selection.end)) {
-		const regex = /"(.*?)"(?!\\)/g;
+  // Detect string from cursor position
+  const line = document.lineAt(selection.start.line);
+  const lineText = line.text;
 
-		let a;
-		while ((a = regex.exec(reversedLine)) != null) {
-			const end = line.text.length - a.index - 1;
-			const start = end - a[1].length;
+  // Search for quoted strings using regex
+  const regex = /"([^"\\]*(\\.[^"\\]*)*)"/g;
 
-			if (selection.start.character < start - 1 || end + 1 < selection.start.character) {
-				console.log(a);
-				continue;
-			}
+  let match;
+  while ((match = regex.exec(lineText)) !== null) {
+    const start = match.index + 1; // Character after the quote
+    const end = start + match[1].length;
 
-			const body = line.text.substring(start, end);
-			const range = new vscode.Range(
-				new vscode.Position(selection.start.line, start),
-				new vscode.Position(selection.end.line, end)
-			);
-			return { body, range };
-		}
-	}
-	return null;
+    // Check if cursor is within the string range
+    if (selection.start.character >= match.index && selection.start.character <= match.index + match[0].length) {
+      return {
+        body: match[1],
+        selection: new vscode.Selection(
+          new vscode.Position(selection.start.line, start),
+          new vscode.Position(selection.start.line, end)
+        )
+      };
+    }
+  }
+
+  return null;
 }
 
 export function activate(context: vscode.ExtensionContext) {
-	const memFs = new MemFS();
-	const uri = vscode.Uri.parse(MEM_FS_FILE);
-	const editContext: EditContext = {};
+  // Create an instance of the temporary file manager
+  const tempFileManager = new TempFileManager();
+  context.subscriptions.push({ dispose: () => tempFileManager.dispose() });
 
-	context.subscriptions.push(vscode.workspace.registerFileSystemProvider(MEM_FS_SCHEMA, memFs, { isCaseSensitive: true }));
-	context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((td) => {
-		if (!(MEM_FS_FILE === td.uri.toString() && editContext.editor && editContext.range)) {
-			return;
-		}
+  // Command to edit JSON strings
+  const editJsonStringCommand = vscode.commands.registerCommand('stringified-json-editor.editJsonString', async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showErrorMessage('No active editor');
+      return;
+    }
 
-		console.log('saved:', td.getText());
-		try {
-			const updated = JSON.stringify(JSON.parse(td.getText())).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-			console.log('updated:', updated);
+    // Get JSON string from selection or cursor position
+    const target = getTarget(editor);
+    if (!target) {
+      vscode.window.showErrorMessage('No JSON string found. Please select a JSON string.');
+      return;
+    }
 
-			const { range } = editContext;
-			editContext.editor.edit(editBuilder => {
-				editBuilder.replace(range, updated);
-			});
-			vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-			memFs.delete(uri);
-		} catch (e) {
-			vscode.window.showErrorMessage(`Syntax Error: "${e.message}"`);
-		}
-	}));
+    try {
+      let selectedText = target.body;
+      // Check if the selected text is a JSON string
+      let jsonContent: string = selectedText.replace(/\\n/g, "\n");
 
-	const disposable = vscode.commands.registerCommand('extension.editStringified', function () {
-		// Get the active text editor
-		const editor = vscode.window.activeTextEditor;
-		editContext.editor = editor;
+      try {
+        // Process escaped characters
+        selectedText = selectedText.replace(/^"/, '').replace(/"$/, '').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
 
-		if (editor == null) {
-			return;
-		}
+        try {
+          jsonContent = JSON.stringify(JSON.parse(selectedText), null, 2);
+        } catch (_e) {
+          // noop
+        }
+      } catch (e) {
+        if (e instanceof Error) {
+          vscode.window.showErrorMessage(`Error: ${e.message}`);
+        } else {
+          vscode.window.showErrorMessage('An unknown error occurred');
+        }
+        return;
+      }
 
-		if(MEM_FS_FILE === editor.document.uri.toString()) {
-			vscode.window.showErrorMessage('Cannot edit text in editing stringified JSON.');
-			return;
-		}
+      // Create temporary file
+      const tempFilePath = await tempFileManager.createTempFile(
+        jsonContent,
+        editor.document.uri,
+        target.selection,
+      );
 
-		const target = getTarget(editor);
-		if (target == null) {
-			vscode.window.showErrorMessage('Cannot get target string.');
-			return;
-		}
-		editContext.range = target.range;
+      // Open temporary file
+      const document = await vscode.workspace.openTextDocument(vscode.Uri.file(tempFilePath));
+      await vscode.window.showTextDocument(document, { preview: false });
 
-		let content;
-		try {
-			content = JSON.stringify(JSON.parse(target.body.replace(/\\"/g, '"').replace(/\\\\/g, '\\')), null, 4);
-		} catch (e) {
-			content = target.body.replace(/\\"/g, '"');
-		}
-		memFs.writeFile(uri, Buffer.from(content), { create: true, overwrite: true });
-		vscode.workspace.openTextDocument(uri).then(doc => {
-			vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
-		});
-	});
+      // Set language mode to JSON
+      vscode.languages.setTextDocumentLanguage(document, 'json');
 
-	context.subscriptions.push(disposable);
+      vscode.window.showInformationMessage('JSON string opened as JSON. Edit and save (Ctrl+S) to update the original document.');
+    } catch (error) {
+      if (error instanceof Error) {
+        vscode.window.showErrorMessage(`Error: ${error.message} ${error.stack}`);
+      } else {
+        vscode.window.showErrorMessage('An unknown error occurred');
+      }
+    }
+  });
+
+  context.subscriptions.push(editJsonStringCommand);
+}
+
+export function deactivate() {
+  // Processing when the extension becomes inactive
+  // TempFileManager's dispose is automatically called because it's registered in context.subscriptions
 }

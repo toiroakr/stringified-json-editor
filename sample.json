@@ -1,0 +1,9 @@
+{
+  "name": "サンプルアプリケーション",
+  "version": "1.0.1",
+  "description": "Stringified JSON Editorのテスト用サンプル",
+  "simpleConfig": "{\"debug\":false,\"logLevel\":\"info\"}",
+  "complexConfig": "{\"server\":{\"host\":\"localhost\",\"port\":8080},\"database\":{\"url\":\"mongodb://localhost:27017\",\"name\":\"testdb\",\"options\":{\"useNewUrlParser\":true,\"useUnifiedTopology\":true}},\"auth\":{\"enabled\":true,\"providers\":[\"local\",\"google\",\"github\"]}}",
+  "arrayConfig": "[{\"id\":1,\"name\":\"項目1\"},{\"id\":2,\"name\":\"項目2\"},{\"id\":3,\"name\":\"項目3\"}]",
+  "nestedStringConfig": "{\"outer\":\"{\\\"inner\\\":{\\\"value\\\":42}}\"}"
+}
