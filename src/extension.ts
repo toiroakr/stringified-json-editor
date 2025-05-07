@@ -3,13 +3,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 
-// Interface representing the target string and its range for editing
 interface EditTarget {
   body: string;
   selection: vscode.Selection;
 }
 
-// Interface holding information about temporary files
 interface TempFileInfo {
   filePath: string;
   originalUri: vscode.Uri;
@@ -56,38 +54,29 @@ class TempFileManager {
       return;
     }
 
-    // Get JSON content
-    let jsonContent = document.getText().trim();
-
-    // Open the original document
+    let jsonContent = document.getText();
     const originalDocument = await vscode.workspace.openTextDocument(tempFileInfo.originalUri);
     const originalEditor = await vscode.window.showTextDocument(originalDocument);
 
     try {
-      // Convert JSON to escaped string
       try {
-        jsonContent = JSON.stringify(JSON.parse(jsonContent)).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        jsonContent = JSON.stringify(JSON.parse(jsonContent.trim())).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
       } catch (e) {
-        vscode.window.showErrorMessage('Not a valid JSON string: ' + jsonContent);
-        jsonContent = JSON.parse(JSON.stringify({ content: jsonContent })).content;
+        const escaped = JSON.stringify({ s: jsonContent });
+        jsonContent = escaped.substring(6, escaped.length - 2);
       }
 
-      // Edit the original document
       await originalEditor.edit((editBuilder: vscode.TextEditorEdit) => {
         editBuilder.replace(tempFileInfo.originalSelection, jsonContent);
       });
 
-      // Close temporary file editor
       const tabs = vscode.window.tabGroups.all
         .flatMap(group => group.tabs)
         .filter(tab => tab.input instanceof vscode.TabInputText &&
           tab.input.uri.fsPath === document.uri.fsPath);
       await vscode.window.tabGroups.close(tabs);
 
-      // Delete temporary file
       await this.deleteTempFile(filePath);
-
-      vscode.window.showInformationMessage('JSON string has been updated in the original document');
     } catch (error) {
       if (error instanceof Error) {
         vscode.window.showErrorMessage(`Error: ${error.message}`);
@@ -98,17 +87,14 @@ class TempFileManager {
     }
   }
 
-  // Create a temporary file
   public async createTempFile(content: string, originalUri: vscode.Uri, originalSelection: vscode.Selection): Promise<string> {
     const tempDir = os.tmpdir();
     const timestamp = Date.now();
     const fileName = `stringified_json_${timestamp}.json`;
     const filePath = path.join(tempDir, fileName);
 
-    // Write content to file
     await fs.promises.writeFile(filePath, content, 'utf8');
 
-    // Save information
     this._tempFiles.set(filePath, {
       filePath,
       originalUri,
@@ -118,12 +104,10 @@ class TempFileManager {
     return filePath;
   }
 
-  // Get temporary file information
   public getTempFileInfo(filePath: string): TempFileInfo | undefined {
     return this._tempFiles.get(filePath);
   }
 
-  // Delete a temporary file
   public async deleteTempFile(filePath: string): Promise<void> {
     try {
       await fs.promises.unlink(filePath);
@@ -133,7 +117,6 @@ class TempFileManager {
     }
   }
 
-  // Delete all temporary files
   public async deleteAllTempFiles(): Promise<void> {
     for (const [filePath] of this._tempFiles) {
       await this.deleteTempFile(filePath);
@@ -149,29 +132,35 @@ class TempFileManager {
   }
 }
 
-// Function to check if two positions are equal
 function positionEquals(a: vscode.Position, b: vscode.Position): boolean {
   return a.line === b.line && a.character === b.character;
 }
 
-// Function to detect a string at cursor position
 function getTarget(editor: vscode.TextEditor): EditTarget | null {
   const document = editor.document;
   const selection = editor.selection;
 
   // Use selected range if exists
   if (!positionEquals(selection.start, selection.end)) {
-    const selectedText = document.getText(selection);
-    return { body: selectedText, selection };
+    let start = selection.start;
+    let end = selection.end;
+    let selectedText = document.getText(selection);
+    if (selectedText.startsWith('"')) {
+      selectedText = selectedText.slice(1);
+      start = new vscode.Position(selection.start.line, start.character + 1);
+    }
+    if (selectedText.endsWith('"')) {
+      selectedText = selectedText.slice(0, -1);
+      end = new vscode.Position(selection.end.line, selection.end.character - 1);
+    }
+    return { body: selectedText, selection: new vscode.Selection(start, end) };
   }
 
   // Detect string from cursor position
   const line = document.lineAt(selection.start.line);
   const lineText = line.text;
 
-  // Search for quoted strings using regex
   const regex = /"([^"\\]*(\\.[^"\\]*)*)"/g;
-
   let match;
   while ((match = regex.exec(lineText)) !== null) {
     const start = match.index + 1; // Character after the quote
@@ -193,11 +182,9 @@ function getTarget(editor: vscode.TextEditor): EditTarget | null {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  // Create an instance of the temporary file manager
   const tempFileManager = new TempFileManager();
   context.subscriptions.push({ dispose: () => tempFileManager.dispose() });
 
-  // Command to edit JSON strings
   const editJsonStringCommand = vscode.commands.registerCommand('stringified-json-editor.editJsonString', async () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -205,10 +192,9 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    // Get JSON string from selection or cursor position
     const target = getTarget(editor);
     if (!target) {
-      vscode.window.showErrorMessage('No JSON string found. Please select a JSON string.');
+      vscode.window.showErrorMessage('No JSON string found. Select JSON string or place the cursor on it.');
       return;
     }
 
@@ -235,20 +221,15 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      // Create temporary file
       const tempFilePath = await tempFileManager.createTempFile(
         jsonContent,
         editor.document.uri,
         target.selection,
       );
 
-      // Open temporary file
       const document = await vscode.workspace.openTextDocument(vscode.Uri.file(tempFilePath));
       await vscode.window.showTextDocument(document, { preview: false });
-
-      // Set language mode to JSON
       vscode.languages.setTextDocumentLanguage(document, 'json');
-
       vscode.window.showInformationMessage('JSON string opened as JSON. Edit and save (Ctrl+S) to update the original document.');
     } catch (error) {
       if (error instanceof Error) {
