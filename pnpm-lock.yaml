@@ -9,37 +9,37 @@ importers:
   .:
     devDependencies:
       '@types/mocha':
-        specifier: ^10.0.10
+        specifier: 10.0.10
         version: 10.0.10
       '@types/node':
-        specifier: 20.x
+        specifier: 20.17.30
         version: 20.17.30
       '@types/vscode':
-        specifier: ^1.120.0
+        specifier: 1.125.0
         version: 1.125.0
       '@typescript-eslint/eslint-plugin':
-        specifier: ^8.31.0
+        specifier: 8.31.0
         version: 8.31.0(@typescript-eslint/parser@8.31.0(eslint@9.25.1)(typescript@5.8.3))(eslint@9.25.1)(typescript@5.8.3)
       '@typescript-eslint/parser':
-        specifier: ^8.31.0
+        specifier: 8.31.0
         version: 8.31.0(eslint@9.25.1)(typescript@5.8.3)
       '@vscode/test-cli':
-        specifier: ^0.0.12
+        specifier: 0.0.12
         version: 0.0.12
       '@vscode/test-electron':
-        specifier: ^2.4.1
+        specifier: 2.5.2
         version: 2.5.2
       esbuild:
-        specifier: ^0.28.0
+        specifier: 0.28.1
         version: 0.28.1
       eslint:
-        specifier: ^9.25.1
+        specifier: 9.25.1
         version: 9.25.1
       npm-run-all:
-        specifier: ^4.1.5
+        specifier: 4.1.5
         version: 4.1.5
       typescript:
-        specifier: ^5.8.3
+        specifier: 5.8.3
         version: 5.8.3
 
 packages:
