@@ -3,6 +3,7 @@
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests", ":pinDevDependencies"],
   "labels": ["dependencies"],
   "minimumReleaseAge": "7 days",
+  "rangeStrategy": "bump",
   "packageRules": [
     {
       "matchManagers": ["github-actions"],
@@ -17,6 +18,10 @@
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "rangeStrategy": "bump"
     }
   ]
 }
