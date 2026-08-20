@@ -10,7 +10,7 @@
   ],
   "keywords": ["JSON"],
   "engines": {
-    "vscode": "^1.132.1"
+    "vscode": "^1.133.0"
   },
   "license": "MIT",
   "activationEvents": [
