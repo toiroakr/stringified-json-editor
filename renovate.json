@@ -3,6 +3,9 @@
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests", ":pinDevDependencies"],
   "labels": ["dependencies"],
   "minimumReleaseAge": "7 days",
+  "prCreation": "not-pending",
+  "internalChecksFilter": "strict",
+  "internalChecksAsSuccess": true,
   "rangeStrategy": "bump",
   "packageRules": [
     {
