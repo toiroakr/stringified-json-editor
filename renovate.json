@@ -25,6 +25,14 @@
     {
       "matchDepTypes": ["devDependencies"],
       "rangeStrategy": "bump"
+    },
+    {
+      "description": "Allow missing release timestamps only for the npm-run-all replacement; require manual review.",
+      "matchDatasources": ["npm"],
+      "matchPackageNames": ["npm-run-all"],
+      "matchUpdateTypes": ["replacement"],
+      "minimumReleaseAgeBehaviour": "timestamp-optional",
+      "automerge": false
     }
   ]
 }
