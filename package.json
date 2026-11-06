@@ -55,7 +55,7 @@
     "@types/node": "26.6.6",
     "@typescript-eslint/eslint-plugin": "^8.72.1",
     "@typescript-eslint/parser": "^8.72.1",
-    "eslint": "^10.13.0",
+    "eslint": "^10.14.0",
     "esbuild": "^0.28.2",
     "npm-run-all2": "^9.0.4",
     "typescript": "^5.9.3",
