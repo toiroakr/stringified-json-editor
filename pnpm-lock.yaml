@@ -178,7 +178,7 @@ snapshots:
 			"devDependencies": {
 				"@types/mocha": {"specifier": "^10.0.10", "version": "10.0.10"},
 				"@types/node": "26.6.6",
-				"@types/vscode": {"specifier": "^1.145.0", "version": "1.145.0"},
+				"@types/vscode": {"specifier": "^1.146.0", "version": "1.146.0"},
 				"@typescript-eslint/eslint-plugin": {"specifier": "^8.72.2", "version": "8.72.2"},
 				"@typescript-eslint/parser": {"specifier": "^8.72.2", "version": "8.72.2"},
 				"@vscode/test-cli": {"specifier": "^0.0.15", "version": "0.0.15"},
@@ -599,8 +599,8 @@ snapshots:
 			},
 		},
 
-		"@types/vscode@1.145.0": {
-			"integrity": "sha512-mADZK4SF/j1n0+Qk4bH8NT1qTQGYDAsbhb5hStbzuB3hKP3mRH7xja5yUaIm7ExCh65Ff+C9XGwxcBvSlTCvkQ==",
+		"@types/vscode@1.146.0": {
+			"integrity": "sha512-OtU25faeM997QQsW+D07FN9cX06j+EEI4aQaPw/UO3HWlCM39N1W7fG8ewhdZKluut31KffyMsmDzJzgMu6t8Q==",
 		},
 
 		"@typescript-eslint/eslint-plugin@8.72.2": {
