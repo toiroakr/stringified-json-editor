@@ -66,5 +66,5 @@
     "type": "git",
     "url": "https://github.com/toiroakr/stringified-json-editor"
   },
-  "packageManager": "pnpm@12.19.0"
+  "packageManager": "pnpm@12.21.0"
 }
